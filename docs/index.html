@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>bartardl — Non-parametric ARDL with BART</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%98%80%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<meta property="og:title" content="bartardl — Non-parametric ARDL with BART">
+<meta property="og:description" content="Non-parametric ARDL modelling with Bayesian Additive Regression Trees. By Dr Merwan Roudane.">
+<meta property="og:type" content="website">
+<meta name="description" content="bartardl: non-parametric ARDL modelling with Bayesian Additive Regression Trees. Theory, results, and a Python code guide by Dr Merwan Roudane.">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+<script>window.MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']]},svg:{fontCache:'global'}};</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+<style>
+:root{
+  --ink:#2b2540; --ink-soft:#5b5470; --line:#f0e2c8;
+  --cream:#fffdf6; --cream2:#fff7e8; --panel:#ffffff;
+  --gold:#f6a821; --gold-soft:#ffd873; --coral:#ff7a59; --sun:#ffcf4d;
+  --sky:#2f9bd6; --teal:#0f9fb0; --indigo:#4b3fa7; --green:#4fa877;
+  --shadow:0 10px 30px rgba(214,150,40,.13); --shadow-sm:0 4px 14px rgba(214,150,40,.10);
+  --radius:16px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; color:var(--ink); background:var(--cream);
+  font-family:"Segoe UI",Roboto,-apple-system,Helvetica,Arial,sans-serif;
+  line-height:1.65; font-size:17px;
+  background-image:radial-gradient(1200px 600px at 80% -10%,#fff2cf 0%,rgba(255,255,255,0) 60%),
+                   radial-gradient(900px 500px at -10% 10%,#ffe9d6 0%,rgba(255,255,255,0) 55%);
+}
+a{color:var(--sky); text-decoration:none}
+a:hover{color:var(--coral); text-decoration:underline}
+h1,h2,h3{line-height:1.2; color:var(--ink)}
+h2{font-size:1.9rem; margin:2.6rem 0 .4rem}
+h3{font-size:1.25rem; margin:1.8rem 0 .3rem; color:var(--indigo)}
+code,kbd{font-family:"JetBrains Mono",Consolas,Menlo,monospace}
+.wrap{max-width:1060px; margin:0 auto; padding:0 22px}
+.center{text-align:center}
+
+/* ---- nav ---- */
+nav{position:sticky; top:0; z-index:50; backdrop-filter:blur(8px);
+  background:rgba(255,253,246,.86); border-bottom:1px solid var(--line)}
+nav .wrap{display:flex; align-items:center; gap:18px; height:58px; flex-wrap:wrap}
+nav .brand{font-weight:800; color:var(--indigo); font-size:1.1rem; letter-spacing:.2px}
+nav .brand span{color:var(--coral)}
+nav .links{display:flex; gap:16px; margin-left:auto; flex-wrap:wrap}
+nav .links a{color:var(--ink-soft); font-weight:600; font-size:.94rem}
+nav .links a:hover{color:var(--coral); text-decoration:none}
+
+/* ---- hero ---- */
+.hero{position:relative; overflow:hidden; text-align:center; color:#4a2f00;
+  background:linear-gradient(135deg,#ffd873 0%,#ffb347 42%,#ff8a5c 100%);
+  padding:64px 20px 74px; border-bottom:4px solid #fff}
+.hero::before{content:""; position:absolute; width:340px; height:340px; border-radius:50%;
+  top:-120px; right:8%; background:radial-gradient(circle,#fff7d6 0%,rgba(255,247,214,0) 70%)}
+.hero .tag{display:inline-block; background:rgba(255,255,255,.7); color:#8a4b12;
+  font-weight:700; padding:5px 14px; border-radius:999px; font-size:.82rem; letter-spacing:.6px; text-transform:uppercase}
+.hero h1{font-size:3.1rem; margin:.5rem 0 .2rem; color:#3d2600; letter-spacing:-.5px}
+.hero h1 .b{color:#fff; text-shadow:0 2px 10px rgba(180,90,20,.35)}
+.hero p.sub{font-size:1.2rem; margin:.2rem auto .2rem; max-width:640px; color:#5a3708}
+.hero .author{margin-top:14px; font-size:1.05rem; color:#452b04}
+.hero .author b{color:#fff; text-shadow:0 1px 6px rgba(160,80,10,.4)}
+.badges{margin:18px 0 6px}
+.badges img{margin:3px; vertical-align:middle}
+.btns{margin-top:22px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap}
+.btn{display:inline-flex; align-items:center; gap:8px; font-weight:700; padding:12px 22px;
+  border-radius:999px; box-shadow:var(--shadow-sm); transition:transform .12s ease}
+.btn:hover{transform:translateY(-2px); text-decoration:none}
+.btn.primary{background:#fff; color:var(--coral)}
+.btn.ghost{background:rgba(255,255,255,.22); color:#fff; border:2px solid rgba(255,255,255,.7)}
+.install{margin:26px auto 0; max-width:430px; background:#3d2a00; color:#ffe9b0;
+  padding:12px 18px; border-radius:12px; font-family:monospace; box-shadow:var(--shadow);
+  display:flex; align-items:center; justify-content:center; gap:8px}
+.install .p{color:#ffb347}
+
+/* ---- sections & cards ---- */
+section{padding:8px 0}
+.lead{font-size:1.12rem; color:var(--ink-soft)}
+.grid{display:grid; gap:18px}
+.grid.c3{grid-template-columns:repeat(3,1fr)}
+.grid.c2{grid-template-columns:repeat(2,1fr)}
+.card{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+  padding:20px 22px; box-shadow:var(--shadow-sm)}
+.card h3{margin-top:.1rem}
+.card .ic{font-size:1.6rem}
+.kbox{background:linear-gradient(180deg,#fff7e6,#fff);
+  border:1px solid var(--gold-soft); border-left:6px solid var(--gold);
+  border-radius:12px; padding:14px 18px; margin:16px 0; box-shadow:var(--shadow-sm)}
+.kbox b{color:#a5700f}
+.note{background:#eef8fd; border:1px solid #cfeafc; border-left:6px solid var(--sky);
+  border-radius:12px; padding:12px 18px; margin:16px 0}
+.warn{background:#fff2ee; border:1px solid #ffd6c9; border-left:6px solid var(--coral);
+  border-radius:12px; padding:12px 18px; margin:16px 0}
+.eyebrow{color:var(--coral); font-weight:800; letter-spacing:1.4px; text-transform:uppercase; font-size:.8rem}
+
+/* ---- tables ---- */
+.twrap{overflow-x:auto; margin:14px 0; border-radius:12px; box-shadow:var(--shadow-sm)}
+table{border-collapse:collapse; width:100%; background:#fff; font-size:.96rem}
+caption{caption-side:top; text-align:left; font-weight:700; color:var(--indigo); padding:8px 4px}
+th,td{padding:10px 14px; border-bottom:1px solid #f2e9d6; text-align:center}
+th:first-child,td:first-child{text-align:left; font-weight:600}
+thead th{background:linear-gradient(180deg,#ffe6a8,#ffd873); color:#5a3708; border-bottom:2px solid var(--gold)}
+tbody tr:nth-child(even){background:#fffaf0}
+tbody tr:hover{background:#fff3d6}
+tr.win{background:#e9f8ef !important}
+tr.win td:first-child{color:var(--green)}
+.best{font-weight:800; color:#2e7d4f}
+
+/* ---- figures ---- */
+figure{margin:0}
+.fig{background:#fff; border:1px solid var(--line); border-radius:14px; padding:14px;
+  box-shadow:var(--shadow-sm); text-align:center}
+.fig img{max-width:100%; height:auto; border-radius:8px}
+.fig figcaption{margin-top:8px; color:var(--ink-soft); font-size:.9rem}
+
+/* ---- code ---- */
+pre{margin:14px 0; border-radius:12px; box-shadow:var(--shadow-sm); border:1px solid var(--line); overflow:auto}
+pre code.hljs{padding:18px 20px; font-size:.9rem; line-height:1.55; background:#fffdf7 !important}
+:not(pre)>code{background:#fff2d6; color:#8a4b12; padding:2px 7px; border-radius:6px; font-size:.9em}
+.step{display:flex; gap:14px; align-items:flex-start; margin:10px 0}
+.step .n{flex:0 0 34px; height:34px; border-radius:50%; display:grid; place-items:center;
+  background:linear-gradient(135deg,var(--gold),var(--coral)); color:#fff; font-weight:800; box-shadow:var(--shadow-sm)}
+.step .t{flex:1}
+.out{background:#3d2a00; color:#ffe9b0; border-radius:10px; padding:12px 16px; font-family:monospace;
+  font-size:.85rem; white-space:pre; overflow-x:auto; margin:8px 0}
+
+/* ---- footer ---- */
+footer{margin-top:50px; background:linear-gradient(135deg,#ffb347,#ff8a5c); color:#3d2600;
+  padding:38px 20px; text-align:center; border-top:4px solid #fff}
+footer a{color:#3d2600; font-weight:700; text-decoration:underline}
+footer .name{font-size:1.3rem; font-weight:800; color:#fff; text-shadow:0 1px 6px rgba(160,80,10,.4)}
+
+@media(max-width:820px){
+  .grid.c3,.grid.c2{grid-template-columns:1fr}
+  .hero h1{font-size:2.3rem}
+  nav .links{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- ===================== NAV ===================== -->
+<nav><div class="wrap">
+  <div class="brand">bart<span>ardl</span></div>
+  <div class="links">
+    <a href="#overview">Overview</a>
+    <a href="#install">Install</a>
+    <a href="#quickstart">Quick start</a>
+    <a href="#theory">Theory</a>
+    <a href="#results">Results</a>
+    <a href="#guide">Code guide</a>
+    <a href="#api">API</a>
+    <a href="#cite">Cite</a>
+  </div>
+</div></nav>
+
+<!-- ===================== HERO ===================== -->
+<header class="hero">
+  <div class="wrap">
+    <span class="tag">☀ Non-parametric time-series modelling</span>
+    <h1>bart<span class="b">ardl</span></h1>
+    <p class="sub">Autoregressive distributed-lag models with a <b>Bayesian Additive
+      Regression Trees</b> conditional mean — theory, evidence, and a hands-on Python guide.</p>
+    <div class="author">Created &amp; maintained by <b>Dr Merwan Roudane</b></div>
+
+    <div class="badges">
+      <a href="https://pypi.org/project/bartardl/"><img src="https://img.shields.io/pypi/v/bartardl.svg?color=f6a821" alt="PyPI"></a>
+      <a href="https://pypi.org/project/bartardl/"><img src="https://img.shields.io/pypi/pyversions/bartardl.svg?color=ff8a5c" alt="Python"></a>
+      <a href="https://github.com/merwanroudane/bartardl/blob/main/LICENSE"><img src="https://img.shields.io/pypi/l/bartardl.svg?color=2f9bd6" alt="License"></a>
+      <a href="https://doi.org/10.4236/am.2024.154018"><img src="https://img.shields.io/badge/DOI-10.4236%2Fam.2024.154018-4b3fa7.svg" alt="DOI"></a>
+    </div>
+
+    <div class="btns">
+      <a class="btn primary" href="https://pypi.org/project/bartardl/">📦 PyPI</a>
+      <a class="btn ghost" href="https://github.com/merwanroudane/bartardl">⭐ GitHub</a>
+      <a class="btn ghost" href="lecture/ardl_bart_lecture.pdf">🎓 Lecture (PDF)</a>
+    </div>
+    <div class="install"><span class="p">$</span> pip install bartardl</div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<!-- ===================== OVERVIEW ===================== -->
+<section id="overview">
+  <div class="eyebrow">What it is</div>
+  <h2>Let the data choose the shape of $f$</h2>
+  <p class="lead">A faithful, self-contained Python implementation of Mahdavi, Ehsani,
+    Ahelegbey &amp; Mohammadpour (2024),
+    <a href="https://doi.org/10.4236/am.2024.154018"><i>Measuring Causal Effect with ARDL-BART</i></a>
+    (<i>Applied Mathematics</i> <b>15</b>, 292–312). It replaces the linear conditional
+    mean of an ARDL equation with a sum of Bayesian regression trees, so lag effects
+    may be non-linear and interactive — then benchmarks it against LASSO, Elastic Net
+    and a Bayesian-network selector.</p>
+
+  <div class="grid c3">
+    <div class="card"><div class="ic">🌲</div><h3>Faithful BART</h3>
+      Sum-of-trees with the exact priors of Chipman, George &amp; McCulloch (2010):
+      tree prior $\alpha(1{+}d)^{-\beta}$, conjugate-normal leaves, $(\nu,q)$-calibrated
+      error prior. Pure NumPy — no external engine.</div>
+    <div class="card"><div class="ic">🔁</div><h3>ARDL layer</h3>
+      One equation per target, every variable at lags $1{\dots}p$, with the paper's
+      stationarity transforms built in.</div>
+    <div class="card"><div class="ic">🧮</div><h3>Drop-in competitors</h3>
+      LASSO, Elastic Net and a spike-and-slab Bayesian network share one interface —
+      swap them into the ARDL mean freely.</div>
+    <div class="card"><div class="ic">📊</div><h3>Journal graphics</h3>
+      RMSE box plots, inclusion-proportion bars, actual-vs-fitted overlays, and
+      LaTeX / HTML / console tables in the MATLAB <b>Parula</b> palette.</div>
+    <div class="card"><div class="ic">🧪</div><h3>Reproduces the paper</h3>
+      Friedman simulations and the eight-variable US-macro application, with an
+      offline dataset so every example runs without a network.</div>
+    <div class="card"><div class="ic">🎓</div><h3>Teaching-ready</h3>
+      A 32-frame colour lecture and a full developer guide ship in the repo.</div>
+  </div>
+</section>
+
+<!-- ===================== INSTALL ===================== -->
+<section id="install">
+  <div class="eyebrow">Get started</div>
+  <h2>Installation</h2>
+  <pre><code class="language-bash">pip install bartardl
+
+# optional: live FRED download for the real macro data
+pip install "bartardl[fred]"</code></pre>
+  <p>Or from source:</p>
+  <pre><code class="language-bash">git clone https://github.com/merwanroudane/bartardl.git
+cd bartardl
+pip install -e ".[dev]"</code></pre>
+  <div class="note">Requires Python ≥ 3.9. Dependencies: <code>numpy</code>,
+    <code>scipy</code>, <code>pandas</code>, <code>scikit-learn</code>, <code>matplotlib</code>.</div>
+</section>
+
+<!-- ===================== QUICK START ===================== -->
+<section id="quickstart">
+  <div class="eyebrow">30 seconds</div>
+  <h2>Quick start</h2>
+  <pre><code class="language-python">import bartardl as ba
+
+data  = ba.load_macro()                      # stationary US macro panel (8 vars)
+model = ba.ARDLBART(                          # ARDL(4) with a BART conditional mean
+    n_lags=4,
+    estimator=ba.BART,
+    estimator_kwargs=dict(n_trees=100, n_burn=500, n_draws=500, random_state=0),
+)
+res = model.fit(data, target="GDP")
+
+print("In-sample RMSE:", ba.rmse(res.y_train, res.fitted))
+print(res.top_features(5))                   # 5 most influential lagged regressors</code></pre>
+  <div class="out">In-sample RMSE: 0.0019
+
+  feature variable  lag  importance
+  PC.lag1       PC    1      0.0892
+  IP.lag1       IP    1      0.0760
+ GDP.lag1      GDP    1      0.0601
+   U.lag3        U    3      0.0402
+ INF.lag3      INF    3      0.0401</div>
+</section>
+
+<!-- ===================== THEORY ===================== -->
+<section id="theory">
+  <div class="eyebrow">The model</div>
+  <h2>A little theory</h2>
+
+  <h3>The ARDL equation</h3>
+  <p>For a target $y$ and a system of $K$ variables, every variable enters at lags
+  $1,\dots,p$ and equations are estimated one at a time:</p>
+  <div class="kbox">
+    $$ y_t = f\!\big(y_{t-1},\dots,y_{t-p},\,x_{1,t-1},\dots,x_{K,t-p}\big) + e_t,
+       \qquad e_t \sim N(0,\sigma^2). $$
+  </div>
+
+  <h3>BART: a sum of weak trees</h3>
+  <p>The unknown $f$ is approximated by an ensemble of $m$ shallow regression trees,</p>
+  <div class="kbox">
+    $$ f(\mathbf{x}) \approx \sum_{l=1}^{m} g(\mathbf{x};\,T_l,\,M_l), $$
+    where $T_l$ is a tree of split rules and $M_l$ its leaf values.
+  </div>
+  <p>Three priors do the regularising — they keep every single tree a <b>weak learner</b>
+  so signal is built up additively:</p>
+  <div class="grid c3">
+    <div class="card"><h3>Tree structure</h3>A node at depth $d$ splits with probability
+      $\alpha(1+d)^{-\beta}$ — defaults $\alpha{=}0.95$, $\beta{=}2$ keep trees shallow.</div>
+    <div class="card"><h3>Leaf value</h3>$\mu \sim N(0,\tau)$ with
+      $\tau=\big(0.5/(k\sqrt m)\big)^2$; $k{=}2$.</div>
+    <div class="card"><h3>Error variance</h3>$\sigma^2 \sim \text{InvGamma}(\nu/2,\nu\lambda/2)$,
+      with $\lambda$ from a $q$-quantile rule ($\nu{=}3,\ q{=}0.9$).</div>
+  </div>
+  <p>The posterior is drawn by <b>Bayesian back-fitting MCMC</b>: each sweep proposes a
+  <i>grow</i> or <i>prune</i> move per tree, then re-samples the leaves and $\sigma^2$.
+  Variable importance is the <b>inclusion proportion</b> — the share of all splitting
+  rules that use each predictor.</p>
+  <div class="warn"><b>Kept honest.</b> The paper's “ARDL” is the distributed-lag
+    <i>regression</i> (no bounds test / error-correction), and “causal effect” is
+    operationalised as forecasting + variable importance. The
+    <a href="https://github.com/merwanroudane/bartardl/blob/main/docs/guide.md">developer guide</a>
+    reconciles this point by point.</p>
+</section>
+
+<!-- ===================== RESULTS ===================== -->
+<section id="results">
+  <div class="eyebrow">Evidence</div>
+  <h2>Results &amp; plots</h2>
+
+  <h3>Simulation — non-linear DGP (BART wins)</h3>
+  <div class="grid c2">
+    <div>
+      <div class="twrap"><table>
+        <caption>Relative RMSE, $p=10$ (lower is better)</caption>
+        <thead><tr><th>method</th><th>mean</th><th>median</th><th>Q.50</th><th>Q.75</th></tr></thead>
+        <tbody>
+          <tr class="win"><td>BART</td><td class="best">2.554</td><td class="best">2.534</td><td>2.534</td><td>2.735</td></tr>
+          <tr><td>LASSO</td><td>2.750</td><td>2.741</td><td>2.741</td><td>2.951</td></tr>
+          <tr><td>Elastic-Net</td><td>2.753</td><td>2.743</td><td>2.743</td><td>2.951</td></tr>
+          <tr><td>Bayesian-Net</td><td>2.727</td><td>2.714</td><td>2.714</td><td>2.939</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+    <figure class="fig"><img src="figures/sim_nonlinear_box.png" alt="Non-linear DGP RMSE box plot">
+      <figcaption>RMSE across 100 Monte-Carlo runs — BART lowest.</figcaption></figure>
+  </div>
+  <figure class="fig" style="margin-top:16px"><img src="figures/sim_nonlinear_imp.png" alt="BART inclusion proportions non-linear">
+    <figcaption>BART inclusion proportions concentrate on the five relevant predictors $x_1,\dots,x_5$.</figcaption></figure>
+
+  <h3>Simulation — linear DGP (linear selectors win)</h3>
+  <div class="grid c2">
+    <div>
+      <div class="twrap"><table>
+        <caption>Relative RMSE, $p=10$</caption>
+        <thead><tr><th>method</th><th>mean</th><th>median</th><th>Q.50</th><th>Q.75</th></tr></thead>
+        <tbody>
+          <tr><td>BART</td><td>1.474</td><td>1.418</td><td>1.418</td><td>1.530</td></tr>
+          <tr><td>LASSO</td><td>1.033</td><td>1.023</td><td>1.023</td><td>1.080</td></tr>
+          <tr><td>Elastic-Net</td><td>1.033</td><td>1.023</td><td>1.023</td><td>1.080</td></tr>
+          <tr class="win"><td>Bayesian-Net</td><td class="best">1.023</td><td class="best">1.009</td><td>1.009</td><td>1.072</td></tr>
+        </tbody>
+      </table></div>
+      <div class="kbox">A method that won <i>everywhere</i> would be suspicious — BART's
+        edge is specifically <b>non-linearity</b>.</div>
+    </div>
+    <figure class="fig"><img src="figures/sim_linear_box.png" alt="Linear DGP RMSE box plot">
+      <figcaption>Under a linear truth the penalised regressions are unbeatable.</figcaption></figure>
+  </div>
+
+  <h3>Empirical — eight US macro series</h3>
+  <div class="twrap"><table>
+    <caption>Table 3 — variables &amp; stationarity transforms</caption>
+    <thead><tr><th>ID</th><th>FRED</th><th>code</th><th>description</th></tr></thead>
+    <tbody>
+      <tr><td>GDP</td><td>GDPC1</td><td>5</td><td>real gross domestic product</td></tr>
+      <tr><td>INF</td><td>CPIAUCSL</td><td>5</td><td>consumer price index</td></tr>
+      <tr><td>FF</td><td>FEDFUNDS</td><td>2</td><td>federal funds rate</td></tr>
+      <tr><td>M2</td><td>M2SL</td><td>5</td><td>money stock M2</td></tr>
+      <tr><td>PC</td><td>PCECC96</td><td>5</td><td>real personal consumption</td></tr>
+      <tr><td>IP</td><td>INDPRO</td><td>5</td><td>industrial production</td></tr>
+      <tr><td>U</td><td>UNRATE</td><td>2</td><td>unemployment rate</td></tr>
+      <tr><td>INV</td><td>GPDIC1</td><td>5</td><td>real private investment</td></tr>
+    </tbody>
+  </table></div>
+  <p class="lead" style="font-size:.95rem">code 2 = first difference, 5 = first difference of log. ARDL(4) ⇒ 8×4 = 32 regressors per equation.</p>
+
+  <div class="twrap"><table>
+    <caption>Table 4 — hold-out forecast RMSE by target (gold = BART wins)</caption>
+    <thead><tr><th>target</th><th>BART</th><th>LASSO</th><th>Elastic-Net</th><th>Bayesian-Net</th><th>best</th></tr></thead>
+    <tbody>
+      <tr class="win"><td>GDP</td><td class="best">0.0032</td><td>0.0057</td><td>0.0057</td><td>0.0103</td><td>BART</td></tr>
+      <tr class="win"><td>INF</td><td class="best">0.0036</td><td>0.0037</td><td>0.0037</td><td>0.0075</td><td>BART</td></tr>
+      <tr><td>FF</td><td>0.1216</td><td class="best">0.0895</td><td>0.0905</td><td>0.0937</td><td>LASSO</td></tr>
+      <tr><td>M2</td><td>0.0035</td><td class="best">0.0031</td><td>0.0031</td><td>0.0076</td><td>LASSO</td></tr>
+      <tr class="win"><td>PC</td><td class="best">0.0039</td><td>0.0056</td><td>0.0056</td><td>0.0091</td><td>BART</td></tr>
+      <tr class="win"><td>IP</td><td class="best">0.0037</td><td>0.0065</td><td>0.0065</td><td>0.0099</td><td>BART</td></tr>
+      <tr class="win"><td>U</td><td class="best">0.1051</td><td>0.1251</td><td>0.1252</td><td>0.1367</td><td>BART</td></tr>
+      <tr class="win"><td>INV</td><td class="best">0.0118</td><td>0.0149</td><td>0.0149</td><td>0.0162</td><td>BART</td></tr>
+    </tbody>
+  </table></div>
+  <p><b style="color:var(--indigo)">BART ranks #1 for 6 of 8 targets</b>; the linear selectors take the two (near-)linear series.</p>
+
+  <div class="grid c2">
+    <figure class="fig"><img src="figures/macro_gdp_imp.png" alt="BART inclusion proportions for GDP">
+      <figcaption>What drives GDP — BART inclusion proportions.</figcaption></figure>
+    <figure class="fig"><img src="figures/macro_gdp_fit.png" alt="Actual vs fitted GDP">
+      <figcaption>Actual vs fitted GDP growth.</figcaption></figure>
+  </div>
+</section>
+
+<!-- ===================== CODE GUIDE ===================== -->
+<section id="guide">
+  <div class="eyebrow">Tutorial</div>
+  <h2>How to write the code</h2>
+  <p class="lead">A start-to-finish walk-through. Every estimator shares one interface —
+    <code>fit(X, y)</code>, <code>predict(X)</code>, and an importance attribute — so the
+    pieces compose cleanly.</p>
+
+  <div class="step"><div class="n">1</div><div class="t">
+    <h3>Load a stationary panel</h3>
+    <p><code>load_macro()</code> returns the eight variables already differenced per the
+    Table-3 codes. Use <code>source="fred"</code> for live data.</p>
+    <pre><code class="language-python">import bartardl as ba
+data = ba.load_macro()          # DataFrame, 255 x 8
+data.head()</code></pre>
+  </div></div>
+
+  <div class="step"><div class="n">2</div><div class="t">
+    <h3>Build one ARDL equation</h3>
+    <p>Pick the lag order and the conditional-mean estimator. Passing the <b>class</b>
+    <code>ba.BART</code> means each equation gets a fresh model.</p>
+    <pre><code class="language-python">model = ba.ARDLBART(
+    n_lags=4,
+    estimator=ba.BART,
+    estimator_kwargs=dict(n_trees=200, n_draws=1000, random_state=0),
+)
+res = model.fit(data, target="GDP")</code></pre>
+  </div></div>
+
+  <div class="step"><div class="n">3</div><div class="t">
+    <h3>Read the fit and the drivers</h3>
+    <p>The result exposes fitted values, residuals, and the inclusion-proportion
+    importance as a tidy frame.</p>
+    <pre><code class="language-python">print("RMSE:", ba.rmse(res.y_train, res.fitted))
+res.top_features(5)                     # variable, lag, importance
+res.importance_frame().query("variable == 'M2'")</code></pre>
+  </div></div>
+
+  <div class="step"><div class="n">4</div><div class="t">
+    <h3>Swap in the competitors</h3>
+    <p>Same call, different estimator — LASSO, Elastic Net, or the Bayesian network.</p>
+    <pre><code class="language-python">for est, kw in [(ba.Lasso, {}), (ba.ElasticNet, {}),
+                (ba.BayesianNetwork, dict(n_iter=2000, burn=1000))]:
+    r = ba.ARDLBART(n_lags=4, estimator=est, estimator_kwargs=kw).fit(data, "GDP")
+    print(est.__name__, ba.rmse(r.y_train, r.fitted))</code></pre>
+  </div></div>
+
+  <div class="step"><div class="n">5</div><div class="t">
+    <h3>Run the horse-race and rank</h3>
+    <p>Loop over targets and methods, forecast a hold-out tail, and build the ranking table.</p>
+    <pre><code class="language-python">H = 40; train = data.iloc[:-H]
+methods = {
+    "BART":         (ba.BART,            dict(n_trees=200, n_draws=1000, random_state=0)),
+    "LASSO":        (ba.Lasso,           {}),
+    "Elastic-Net":  (ba.ElasticNet,      {}),
+    "Bayesian-Net": (ba.BayesianNetwork, dict(n_iter=2000, burn=1000, random_state=0)),
+}
+rmse_by_target = {}
+for tgt in data.columns:
+    rmse_by_target[tgt] = {}
+    for name, (est, kw) in methods.items():
+        m = ba.ARDLBART(n_lags=4, estimator=est, estimator_kwargs=kw).fit(train, tgt)
+        pred = m.predict(data, tgt).iloc[-H:]
+        rmse_by_target[tgt][name] = ba.rmse(data[tgt].loc[pred.index], pred)
+
+print(ba.ranking_table(rmse_by_target))          # -> Table 4</code></pre>
+  </div></div>
+
+  <div class="step"><div class="n">6</div><div class="t">
+    <h3>Simulate to stress-test</h3>
+    <p>The Friedman DGPs let you check where BART helps.</p>
+    <pre><code class="language-python">draws = {"BART": [], "LASSO": []}
+for rep in range(100):
+    tr = ba.friedman(n=100, p=10, kind="nonlinear", random_state=rep)
+    te = ba.friedman(n=100, p=10, kind="nonlinear", random_state=1000+rep)
+    for name, est in [("BART", ba.BART(random_state=0)), ("LASSO", ba.Lasso())]:
+        est.fit(tr.X, tr.y)
+        draws[name].append(ba.relative_rmse(te.y, est.predict(te.X), 1.0))
+print(ba.simulation_table(draws))</code></pre>
+  </div></div>
+
+  <div class="step"><div class="n">7</div><div class="t">
+    <h3>Make publication figures</h3>
+    <p>The <code>viz</code> module returns Matplotlib axes; colours come from the Parula palette.</p>
+    <pre><code class="language-python">from bartardl import viz
+from bartardl.colors import parula_colors, get_cmap
+
+viz.rmse_boxplot(draws, title="Non-linear DGP (p = 10)")
+viz.inclusion_plot(res.importance, res.feature_names, top=12,
+                   title="BART inclusion proportions for GDP")
+print(viz.journal_table(ba.ranking_table(rmse_by_target), fmt="latex"))
+
+parula_colors(8)          # ['#352a87', '#0268e1', ...]</code></pre>
+    <figure class="fig" style="margin-top:10px"><img src="figures/parula.png" alt="Parula palette">
+      <figcaption><code>parula_colors(64)</code> — the MATLAB R2014b Parula colormap.</figcaption></figure>
+  </div></div>
+
+  <div class="kbox"><b>Match the paper exactly:</b>
+    <code>ba.BART(n_trees=200, k=2, nu=3, q=0.9, alpha=0.95, beta=2, n_draws=20000, n_burn=250)</code></div>
+</section>
+
+<!-- ===================== API ===================== -->
+<section id="api">
+  <div class="eyebrow">Reference</div>
+  <h2>API at a glance</h2>
+
+  <h3>The estimator protocol</h3>
+  <div class="twrap"><table>
+    <thead><tr><th>call</th><th>returns</th><th>meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>est.fit(X, y)</code></td><td>self</td><td>fit on arrays <code>X (n,p)</code>, <code>y (n,)</code></td></tr>
+      <tr><td><code>est.predict(Xnew)</code></td><td>ndarray</td><td>point predictions</td></tr>
+      <tr><td><code>est.importance_</code></td><td>ndarray</td><td>per-feature weights (BART: <code>inclusion_proportion_</code>)</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3><code>BART</code> parameters</h3>
+  <div class="twrap"><table>
+    <thead><tr><th>parameter</th><th>default</th><th>meaning</th></tr></thead>
+    <tbody>
+      <tr><td>n_trees</td><td>200</td><td>number of trees $m$</td></tr>
+      <tr><td>k</td><td>2.0</td><td>leaf-prior width (shrinkage)</td></tr>
+      <tr><td>nu, q</td><td>3.0, 0.90</td><td>$\sigma^2$ prior d.o.f. and quantile</td></tr>
+      <tr><td>alpha, beta</td><td>0.95, 2.0</td><td>tree prior $\alpha(1+d)^{-\beta}$</td></tr>
+      <tr><td>n_draws, n_burn</td><td>1000, 1000</td><td>retained draws / burn-in</td></tr>
+      <tr><td>random_state</td><td>None</td><td>seed</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Fitted attributes &amp; helpers</h3>
+  <div class="twrap"><table>
+    <thead><tr><th>member</th><th>meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>BART.inclusion_proportion_</code></td><td>variable importance, sums to 1</td></tr>
+      <tr><td><code>BART.yhat_train_draws_</code></td><td>full posterior of the training fit (for 95% bands)</td></tr>
+      <tr><td><code>BART.sigma_draws_</code></td><td>posterior $\sigma$ draws</td></tr>
+      <tr><td><code>ARDLResult.top_features(k)</code></td><td>the $k$ most important lagged regressors</td></tr>
+      <tr><td><code>ranking_table(...)</code> / <code>simulation_table(...)</code></td><td>Table 4 / Tables 1–2</td></tr>
+      <tr><td><code>viz.rmse_boxplot</code> / <code>viz.inclusion_plot</code></td><td>publication figures</td></tr>
+      <tr><td><code>colors.parula_colors(n)</code></td><td>MATLAB Parula palette</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="note">Full reference:
+    <a href="https://github.com/merwanroudane/bartardl/blob/main/README.md">README syntax guide</a> ·
+    <a href="https://github.com/merwanroudane/bartardl/blob/main/docs/guide.md">developer &amp; methodology guide</a> ·
+    <a href="https://github.com/merwanroudane/bartardl/tree/main/examples">runnable examples</a>.</div>
+</section>
+
+<!-- ===================== LINKS ===================== -->
+<section id="links">
+  <div class="eyebrow">Everything in one place</div>
+  <h2>All links</h2>
+  <div class="grid c3">
+    <div class="card"><h3>📦 Package</h3>
+      <a href="https://pypi.org/project/bartardl/">PyPI project</a><br>
+      <code>pip install bartardl</code></div>
+    <div class="card"><h3>⭐ Source</h3>
+      <a href="https://github.com/merwanroudane/bartardl">GitHub repository</a><br>
+      <a href="https://github.com/merwanroudane/bartardl/blob/main/LICENSE">MIT License</a></div>
+    <div class="card"><h3>📄 Paper</h3>
+      <a href="https://doi.org/10.4236/am.2024.154018">doi:10.4236/am.2024.154018</a><br>
+      <i>Applied Mathematics</i> 15 (2024)</div>
+    <div class="card"><h3>🎓 Lecture</h3>
+      <a href="lecture/ardl_bart_lecture.pdf">Beamer slides (PDF)</a><br>
+      <a href="https://github.com/merwanroudane/bartardl/blob/main/docs/lecture/ardl_bart_lecture.tex">LaTeX source</a></div>
+    <div class="card"><h3>📚 Docs</h3>
+      <a href="https://github.com/merwanroudane/bartardl/blob/main/README.md">README + syntax guide</a><br>
+      <a href="https://github.com/merwanroudane/bartardl/blob/main/docs/guide.md">Developer guide</a></div>
+    <div class="card"><h3>🧑‍💻 Author</h3>
+      <a href="https://github.com/merwanroudane">github.com/merwanroudane</a><br>
+      Dr Merwan Roudane</div>
+  </div>
+</section>
+
+<!-- ===================== CITE ===================== -->
+<section id="cite">
+  <div class="eyebrow">Attribution</div>
+  <h2>Citing</h2>
+  <pre><code class="language-bibtex">@article{mahdavi2024ardlbart,
+  author  = {Mahdavi, Pegah and Ehsani, Mohammad Ali and
+             Ahelegbey, Daniel Felix and Mohammadpour, Mehrnaz},
+  title   = {Measuring Causal Effect with {ARDL-BART}: A Macroeconomic Application},
+  journal = {Applied Mathematics}, year = {2024},
+  volume  = {15}, pages = {292--312}, doi = {10.4236/am.2024.154018}
+}
+
+@software{roudane_bartardl,
+  author = {Merwan Roudane},
+  title  = {bartardl: Non-parametric ARDL modelling with BART},
+  url    = {https://github.com/merwanroudane/bartardl}
+}</code></pre>
+</section>
+
+</div><!-- /wrap -->
+
+<!-- ===================== FOOTER ===================== -->
+<footer>
+  <div class="wrap">
+    <div class="name">Dr Merwan Roudane</div>
+    <p>Author &amp; maintainer of <b>bartardl</b> ·
+      <a href="https://github.com/merwanroudane">GitHub</a> ·
+      <a href="https://pypi.org/project/bartardl/">PyPI</a> ·
+      <a href="https://doi.org/10.4236/am.2024.154018">Paper</a></p>
+    <p style="font-size:.85rem; opacity:.85">Released under the MIT License. Built with NumPy, SciPy, scikit-learn &amp; Matplotlib. ☀</p>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>hljs.highlightAll();</script>
+</body>
+</html>
