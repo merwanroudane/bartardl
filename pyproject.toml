@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bartardl"
+version = "0.1.0"
+description = "Non-parametric ARDL modelling with Bayesian Additive Regression Trees (BART)."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Merwan Roudane", email = "merwanroudane920@gmail.com" }]
+keywords = [
+    "BART", "ARDL", "Bayesian additive regression trees", "econometrics",
+    "macroeconomics", "forecasting", "non-parametric", "variable selection",
+    "LASSO", "elastic net",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Mathematics",
+]
+dependencies = [
+    "numpy>=1.21",
+    "scipy>=1.7",
+    "pandas>=1.3",
+    "scikit-learn>=1.0",
+    "matplotlib>=3.4",
+]
+
+[project.optional-dependencies]
+fred = ["pandas-datareader>=0.10"]
+dev = ["pytest>=7.0", "pytest-cov"]
+
+[project.urls]
+Homepage = "https://github.com/merwanroudane/bartardl"
+Repository = "https://github.com/merwanroudane/bartardl"
+Paper = "https://doi.org/10.4236/am.2024.154018"
+
+[tool.setuptools.packages.find]
+include = ["bartardl*"]
+
+[tool.setuptools.package-data]
+bartardl = ["data/*.csv"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["ignore::DeprecationWarning"]
