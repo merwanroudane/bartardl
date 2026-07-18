@@ -28,3 +28,15 @@ Thumbs.db
 # Source paper PDF (copyright) and stray example outputs
 *.pdf
 /examples/*.png
+
+# LaTeX build artifacts
+*.aux
+*.nav
+*.snm
+*.toc
+*.out
+*.vrb
+*.synctex.gz
+
+# ...but keep the compiled lecture slides
+!docs/lecture/ardl_bart_lecture.pdf
