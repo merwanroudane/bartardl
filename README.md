@@ -1,6 +1,13 @@
 # bartardl
 
+[![PyPI version](https://img.shields.io/pypi/v/bartardl.svg)](https://pypi.org/project/bartardl/)
+[![Python versions](https://img.shields.io/pypi/pyversions/bartardl.svg)](https://pypi.org/project/bartardl/)
+[![License: MIT](https://img.shields.io/pypi/l/bartardl.svg)](https://github.com/merwanroudane/bartardl/blob/main/LICENSE)
+[![DOI](https://img.shields.io/badge/DOI-10.4236%2Fam.2024.154018-blue.svg)](https://doi.org/10.4236/am.2024.154018)
+
 **Non-parametric ARDL modelling with Bayesian Additive Regression Trees (BART).**
+
+📦 **[pypi.org/project/bartardl](https://pypi.org/project/bartardl/)** &nbsp;·&nbsp; `pip install bartardl`
 
 A faithful, self-contained Python implementation of
 
@@ -44,12 +51,18 @@ and `matplotlib`.
 ## Installation
 
 ```bash
-git clone https://github.com/merwanroudane/bartardl.git
-cd bartardl
-pip install -e .
+pip install bartardl
 
 # optional: live FRED download for the real macro data
-pip install -e ".[fred]"
+pip install "bartardl[fred]"
+```
+
+Or from source:
+
+```bash
+git clone https://github.com/merwanroudane/bartardl.git
+cd bartardl
+pip install -e ".[dev]"
 ```
 
 Requires Python ≥ 3.9.
